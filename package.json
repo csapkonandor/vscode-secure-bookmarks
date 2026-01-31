@@ -1,0 +1,27 @@
+{
+  "name": "secure-bookmarks",
+  "displayName": "Secure Bookmarks",
+  "description": "A minimal, secure bookmark extension storing data in .vscode/bookmarks.json",
+  "version": "0.0.1",
+  "publisher": "yourname",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "activationEvents": [
+    "onCommand:secureBookmarks.add",
+    "onCommand:secureBookmarks.goto"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "secureBookmarks.add",
+        "title": "Add Bookmark"
+      },
+      {
+        "command": "secureBookmarks.goto",
+        "title": "Go to Bookmark"
+      }
+    ]
+  }
+}
