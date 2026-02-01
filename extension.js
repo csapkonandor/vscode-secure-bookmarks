@@ -85,34 +85,36 @@ function activate(context) {
         vscode.window.showInformationMessage("No bookmarks found.");
         return;
       }
-
+    
       const editor = vscode.window.activeTextEditor;
       if (!editor) return;
-
+    
       const currentFile = editor.document.uri.fsPath;
       const currentLine = editor.selection.active.line;
-
+    
       const sorted = sortBookmarks(bookmarks);
-
-      // Find current index
+    
+      // Try to find exact match first
       let idx = sorted.findIndex(
         b => b.file === currentFile && b.line === currentLine
       );
-
-      // If not exactly on a bookmark, find the next one after current position
-      if (idx === -1) {
+    
+      if (idx !== -1) {
+        // Exactly on a bookmark → go to next (ring style)
+        idx = (idx + 1) % sorted.length;
+      } else {
+        // Not exactly on a bookmark → find the next one after current position
         idx = sorted.findIndex(
           b => b.file > currentFile || (b.file === currentFile && b.line > currentLine)
         );
+        // If still not found, wrap to first
+        if (idx === -1) idx = 0;
       }
-
-      // If still not found, wrap to first
-      if (idx === -1) idx = 0;
-
+    
       await jumpToBookmark(sorted[idx]);
     }
   );
-
+  
   const gotoPrevious = vscode.commands.registerCommand(
     "secureBookmarks.previous",
     async () => {
@@ -121,35 +123,46 @@ function activate(context) {
         vscode.window.showInformationMessage("No bookmarks found.");
         return;
       }
-
+    
       const editor = vscode.window.activeTextEditor;
       if (!editor) return;
-
+    
       const currentFile = editor.document.uri.fsPath;
       const currentLine = editor.selection.active.line;
-
+    
       const sorted = sortBookmarks(bookmarks);
-
-      // Find current index
+    
+      // Try to find exact match first
       let idx = sorted.findIndex(
         b => b.file === currentFile && b.line === currentLine
       );
-
-      // If not exactly on a bookmark, find the previous one
-      if (idx === -1) {
-        idx = sorted
+    
+      if (idx !== -1) {
+        // Exactly on a bookmark → go to previous (ring style)
+        idx = (idx - 1 + sorted.length) % sorted.length;
+      } else {
+        // Not exactly on a bookmark → find the previous one before current position
+        const candidates = sorted
           .map((b, i) => ({ b, i }))
-          .filter(x => x.b.file < currentFile || (x.b.file === currentFile && x.b.line < currentLine))
-          .map(x => x.i)
-          .pop();
+          .filter(
+            x =>
+              x.b.file < currentFile ||
+              (x.b.file === currentFile && x.b.line < currentLine)
+          )
+          .map(x => x.i);
+        
+        if (candidates.length > 0) {
+          idx = candidates[candidates.length - 1];
+        } else {
+          // Nothing before → wrap to last
+          idx = sorted.length - 1;
+        }
       }
-
-      // If still not found, wrap to last
-      if (idx === undefined || idx === -1) idx = sorted.length - 1;
-
+    
       await jumpToBookmark(sorted[idx]);
     }
   );
+
 
   context.subscriptions.push(
     addBookmark,
