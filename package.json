@@ -1,27 +1,38 @@
 {
   "name": "secure-bookmarks",
   "displayName": "Secure Bookmarks",
-  "description": "A minimal, secure bookmark extension storing data in .vscode/bookmarks.json",
-  "version": "0.0.1",
-  "publisher": "yourname",
+  "description": "Simple self-contained bookmark extension",
+  "version": "0.0.2",
+  "publisher": "csapkonandor",
   "engines": {
     "vscode": "^1.80.0"
   },
+  "main": "extension.js",
   "activationEvents": [
     "onCommand:secureBookmarks.add",
-    "onCommand:secureBookmarks.goto"
+    "onCommand:secureBookmarks.goto",
+    "onCommand:secureBookmarks.delete",
+    "onCommand:secureBookmarks.deleteAll"
   ],
-  "main": "./extension.js",
   "contributes": {
     "commands": [
       {
         "command": "secureBookmarks.add",
-        "title": "Add Bookmark"
+        "title": "Secure Bookmarks: Add Bookmark"
       },
       {
         "command": "secureBookmarks.goto",
-        "title": "Go to Bookmark"
+        "title": "Secure Bookmarks: Go to Bookmark"
+      },
+      {
+        "command": "secureBookmarks.delete",
+        "title": "Secure Bookmarks: Delete Bookmark"
+      },
+      {
+        "command": "secureBookmarks.deleteAll",
+        "title": "Secure Bookmarks: Delete All Bookmarks"
       }
     ]
   }
 }
+

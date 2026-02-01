@@ -1,5 +1,4 @@
 const vscode = require("vscode");
-const fs = require("fs");
 const path = require("path");
 
 function activate(context) {
@@ -17,7 +16,7 @@ function activate(context) {
 
       await saveBookmarks(bookmarks);
 
-      vscode.window.showInformationMessage("Bookmark saved to .vscode/bookmarks.json");
+      vscode.window.showInformationMessage("Bookmark saved.");
     }
   );
 
@@ -50,52 +49,91 @@ function activate(context) {
     }
   );
 
-  context.subscriptions.push(addBookmark, gotoBookmark);
+  const deleteBookmark = vscode.commands.registerCommand(
+    "secureBookmarks.delete",
+    async () => {
+      const bookmarks = await loadBookmarks();
+      if (bookmarks.length === 0) {
+        vscode.window.showInformationMessage("No bookmarks to delete.");
+        return;
+      }
+
+      const pick = await vscode.window.showQuickPick(
+        bookmarks.map((b, i) => ({
+          label: path.basename(b.file),
+          description: `${b.file} — line ${b.line + 1}`,
+          index: i
+        }))
+      );
+
+      if (!pick) return;
+
+      bookmarks.splice(pick.index, 1);
+      await saveBookmarks(bookmarks);
+
+      vscode.window.showInformationMessage("Bookmark deleted.");
+    }
+  );
+
+  const deleteAllBookmarks = vscode.commands.registerCommand(
+    "secureBookmarks.deleteAll",
+    async () => {
+      await saveBookmarks([]); // write empty array
+      vscode.window.showInformationMessage("All bookmarks deleted.");
+    }
+  );
+
+  context.subscriptions.push(
+    addBookmark,
+    gotoBookmark,
+    deleteBookmark,
+    deleteAllBookmarks
+  );
 }
 
 async function loadBookmarks() {
-  const filePath = getBookmarksFilePath();
-  if (!filePath) return [];
+  const fileUri = getBookmarksFileUri();
+  if (!fileUri) return [];
 
   try {
-    if (fs.existsSync(filePath)) {
-      const raw = fs.readFileSync(filePath, "utf8");
-      return JSON.parse(raw);
-    }
-  } catch (err) {
-    console.error("Failed to read bookmarks:", err);
+    const data = await vscode.workspace.fs.readFile(fileUri);
+    return JSON.parse(Buffer.from(data).toString("utf8"));
+  } catch {
+    return [];
   }
-
-  return [];
 }
 
 async function saveBookmarks(bookmarks) {
-  const filePath = getBookmarksFilePath();
-  if (!filePath) return;
+  const fileUri = getBookmarksFileUri();
+  if (!fileUri) return;
 
-  const folder = path.dirname(filePath);
+  const folderUri = vscode.Uri.joinPath(
+    vscode.workspace.workspaceFolders[0].uri,
+    ".vscode"
+  );
 
   try {
-    if (!fs.existsSync(folder)) {
-      fs.mkdirSync(folder);
-    }
+    // Ensure .vscode folder exists
+    await vscode.workspace.fs.createDirectory(folderUri);
 
-    fs.writeFileSync(filePath, JSON.stringify(bookmarks, null, 2), "utf8");
+    const encoded = Buffer.from(JSON.stringify(bookmarks, null, 2), "utf8");
+    await vscode.workspace.fs.writeFile(fileUri, encoded);
   } catch (err) {
     console.error("Failed to save bookmarks:", err);
   }
 }
 
-function getBookmarksFilePath() {
+function getBookmarksFileUri() {
   const workspace = vscode.workspace.workspaceFolders?.[0];
   if (!workspace) {
     vscode.window.showErrorMessage("No workspace folder open.");
-    return "";
+    return null;
   }
 
-  return path.join(workspace.uri.fsPath, ".vscode", "bookmarks.json");
+  return vscode.Uri.joinPath(workspace.uri, ".vscode", "bookmarks.json");
 }
 
 function deactivate() {}
 
 module.exports = { activate, deactivate };
+
