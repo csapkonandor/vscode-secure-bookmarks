@@ -155,7 +155,7 @@ function activate(context) {
         idx = (idx - 1 + sorted.length) % sorted.length;
       } else {
         // Not exactly on a bookmark → find the next one after current position
-        idx = sorted.findIndex(
+        idx = sorted.findLastIndex(
           b => b.file < currentFile || (b.file === currentFile && b.line < currentLine) || (b.file === currentFile && b.line  === currentLine && b.character < currentChar)
         );
         // If still not found, wrap to last
