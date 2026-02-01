@@ -25,6 +25,9 @@ Jumps to the next bookmark (if at the end, wraps to the first).
 ### "Secure Bookmarks: Go to Previous Bookmark"
 Jumps to the previous bookmark (if at the beginning, wraps to the last).
 
+### "Secure Bookmarks: Toggle Bookmark"
+Toogles current position. Adds or removes it .
+
 ## Storage
 
 Bookmarks are stored in:

@@ -85,20 +85,20 @@ function activate(context) {
         vscode.window.showInformationMessage("No bookmarks found.");
         return;
       }
-    
+
       const editor = vscode.window.activeTextEditor;
       if (!editor) return;
-    
+
       const currentFile = editor.document.uri.fsPath;
       const currentLine = editor.selection.active.line;
-    
+
       const sorted = sortBookmarks(bookmarks);
-    
+
       // Try to find exact match first
       let idx = sorted.findIndex(
         b => b.file === currentFile && b.line === currentLine
       );
-    
+
       if (idx !== -1) {
         // Exactly on a bookmark → go to next (ring style)
         idx = (idx + 1) % sorted.length;
@@ -110,11 +110,11 @@ function activate(context) {
         // If still not found, wrap to first
         if (idx === -1) idx = 0;
       }
-    
+
       await jumpToBookmark(sorted[idx]);
     }
   );
-  
+
   const gotoPrevious = vscode.commands.registerCommand(
     "secureBookmarks.previous",
     async () => {
@@ -123,20 +123,20 @@ function activate(context) {
         vscode.window.showInformationMessage("No bookmarks found.");
         return;
       }
-    
+
       const editor = vscode.window.activeTextEditor;
       if (!editor) return;
-    
+
       const currentFile = editor.document.uri.fsPath;
       const currentLine = editor.selection.active.line;
-    
+
       const sorted = sortBookmarks(bookmarks);
-    
+
       // Try to find exact match first
       let idx = sorted.findIndex(
         b => b.file === currentFile && b.line === currentLine
       );
-    
+
       if (idx !== -1) {
         // Exactly on a bookmark → go to previous (ring style)
         idx = (idx - 1 + sorted.length) % sorted.length;
@@ -150,7 +150,7 @@ function activate(context) {
               (x.b.file === currentFile && x.b.line < currentLine)
           )
           .map(x => x.i);
-        
+
         if (candidates.length > 0) {
           idx = candidates[candidates.length - 1];
         } else {
@@ -158,8 +158,38 @@ function activate(context) {
           idx = sorted.length - 1;
         }
       }
-    
+
       await jumpToBookmark(sorted[idx]);
+    }
+  );
+
+  const toggleBookmark = vscode.commands.registerCommand(
+    "secureBookmarks.toggle",
+    async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) return;
+
+      const pos = editor.selection.active;
+      const file = editor.document.uri.fsPath;
+
+      const bookmarks = await loadBookmarks();
+
+      // Look for exact match
+      const idx = bookmarks.findIndex(
+        b => b.file === file && b.line === pos.line && b.character === pos.character
+      );
+
+      if (idx !== -1) {
+        // Remove existing bookmark
+        bookmarks.splice(idx, 1);
+        await saveBookmarks(bookmarks);
+        vscode.window.showInformationMessage("Bookmark removed.");
+      } else {
+        // Add new bookmark
+        bookmarks.push({ file, line: pos.line, character: pos.character });
+        await saveBookmarks(bookmarks);
+        vscode.window.showInformationMessage("Bookmark added.");
+      }
     }
   );
 
@@ -170,7 +200,8 @@ function activate(context) {
     deleteBookmark,
     deleteAllBookmarks,
     gotoNext,
-    gotoPrevious
+    gotoPrevious,
+    toggleBookmark
   );
 }
 

@@ -2,7 +2,7 @@
   "name": "secure-bookmarks",
   "displayName": "Secure Bookmarks",
   "description": "Simple self-contained bookmark extension",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "publisher": "local",
   "engines": {
     "vscode": "^1.50.0"
@@ -14,7 +14,8 @@
     "onCommand:secureBookmarks.delete",
     "onCommand:secureBookmarks.deleteAll",
     "onCommand:secureBookmarks.next",
-    "onCommand:secureBookmarks.previous"
+    "onCommand:secureBookmarks.previous",
+    "onCommand:secureBookmarks.toggle"
   ],
   "contributes": {
     "commands": [
@@ -23,7 +24,8 @@
       { "command": "secureBookmarks.delete", "title": "Secure Bookmarks: Delete Bookmark" },
       { "command": "secureBookmarks.deleteAll", "title": "Secure Bookmarks: Delete All Bookmarks" },
       { "command": "secureBookmarks.next", "title": "Secure Bookmarks: Go to Next Bookmark" },
-      { "command": "secureBookmarks.previous", "title": "Secure Bookmarks: Go to Previous Bookmark" }
+      { "command": "secureBookmarks.previous", "title": "Secure Bookmarks: Go to Previous Bookmark" },
+      { "command": "secureBookmarks.toggle", "title": "Secure Bookmarks: Toggle Bookmark" }
     ]
   }
 }
