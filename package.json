@@ -2,7 +2,7 @@
   "name": "secure-bookmarks",
   "displayName": "Secure Bookmarks",
   "description": "Simple self-contained bookmark extension",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "publisher": "local",
   "engines": {
     "vscode": "^1.50.0"

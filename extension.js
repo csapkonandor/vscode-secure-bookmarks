@@ -12,6 +12,15 @@ function activate(context) {
       const file = editor.document.uri.fsPath;
 
       const bookmarks = await loadBookmarks();
+      // Look for exact match
+      const idx = bookmarks.findIndex(
+        b => b.file === file && b.line === pos.line && b.character === pos.character
+      );
+
+      if (idx !== -1) {
+        return;
+      }
+
       bookmarks.push({ file, line: pos.line, character: pos.character });
 
       await saveBookmarks(bookmarks);
@@ -90,13 +99,15 @@ function activate(context) {
       if (!editor) return;
 
       const currentFile = editor.document.uri.fsPath;
-      const currentLine = editor.selection.active.line;
+      const pos = editor.selection.active;
+      const currentLine = pos.line;
+      const currentChar = pos.character;
 
       const sorted = sortBookmarks(bookmarks);
 
       // Try to find exact match first
       let idx = sorted.findIndex(
-        b => b.file === currentFile && b.line === currentLine
+        b => b.file === currentFile && b.line === currentLine && b.character === currentChar
       );
 
       if (idx !== -1) {
@@ -105,7 +116,7 @@ function activate(context) {
       } else {
         // Not exactly on a bookmark → find the next one after current position
         idx = sorted.findIndex(
-          b => b.file > currentFile || (b.file === currentFile && b.line > currentLine)
+          b => b.file > currentFile || (b.file === currentFile && b.line > currentLine) || (b.file === currentFile && b.line === currentLine && b.character > currentChar)
         );
         // If still not found, wrap to first
         if (idx === -1) idx = 0;
@@ -128,35 +139,27 @@ function activate(context) {
       if (!editor) return;
 
       const currentFile = editor.document.uri.fsPath;
-      const currentLine = editor.selection.active.line;
+      const pos = editor.selection.active;
+      const currentLine = pos.line;
+      const currentChar = pos.character;
 
       const sorted = sortBookmarks(bookmarks);
 
       // Try to find exact match first
       let idx = sorted.findIndex(
-        b => b.file === currentFile && b.line === currentLine
+        b => b.file === currentFile && b.line === currentLine &&  b.character === currentChar
       );
 
       if (idx !== -1) {
         // Exactly on a bookmark → go to previous (ring style)
         idx = (idx - 1 + sorted.length) % sorted.length;
       } else {
-        // Not exactly on a bookmark → find the previous one before current position
-        const candidates = sorted
-          .map((b, i) => ({ b, i }))
-          .filter(
-            x =>
-              x.b.file < currentFile ||
-              (x.b.file === currentFile && x.b.line < currentLine)
-          )
-          .map(x => x.i);
-
-        if (candidates.length > 0) {
-          idx = candidates[candidates.length - 1];
-        } else {
-          // Nothing before → wrap to last
-          idx = sorted.length - 1;
-        }
+        // Not exactly on a bookmark → find the next one after current position
+        idx = sorted.findIndex(
+          b => b.file < currentFile || (b.file === currentFile && b.line < currentLine) || (b.file === currentFile && b.line  === currentLine && b.character < currentChar)
+        );
+        // If still not found, wrap to last
+        if (idx === -1) idx = sorted.length - 1;
       }
 
       await jumpToBookmark(sorted[idx]);
@@ -218,7 +221,9 @@ function sortBookmarks(bookmarks) {
   return bookmarks.slice().sort((a, b) => {
     if (a.file < b.file) return -1;
     if (a.file > b.file) return 1;
-    return a.line - b.line;
+    if (a.line < b.line) return -1;
+    if (a.line > b.line) return 1;
+    return a.character - b.character;
   });
 }
 
