@@ -39,13 +39,7 @@ function activate(context) {
 
       if (!pick) return;
 
-      const b = bookmarks[pick.index];
-      const doc = await vscode.workspace.openTextDocument(b.file);
-      const editor = await vscode.window.showTextDocument(doc);
-
-      const pos = new vscode.Position(b.line, b.character);
-      editor.selection = new vscode.Selection(pos, pos);
-      editor.revealRange(new vscode.Range(pos, pos));
+      await jumpToBookmark(bookmarks[pick.index]);
     }
   );
 
@@ -78,8 +72,82 @@ function activate(context) {
   const deleteAllBookmarks = vscode.commands.registerCommand(
     "secureBookmarks.deleteAll",
     async () => {
-      await saveBookmarks([]); // write empty array
+      await saveBookmarks([]);
       vscode.window.showInformationMessage("All bookmarks deleted.");
+    }
+  );
+
+  const gotoNext = vscode.commands.registerCommand(
+    "secureBookmarks.next",
+    async () => {
+      const bookmarks = await loadBookmarks();
+      if (bookmarks.length === 0) {
+        vscode.window.showInformationMessage("No bookmarks found.");
+        return;
+      }
+
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) return;
+
+      const currentFile = editor.document.uri.fsPath;
+      const currentLine = editor.selection.active.line;
+
+      const sorted = sortBookmarks(bookmarks);
+
+      // Find current index
+      let idx = sorted.findIndex(
+        b => b.file === currentFile && b.line === currentLine
+      );
+
+      // If not exactly on a bookmark, find the next one after current position
+      if (idx === -1) {
+        idx = sorted.findIndex(
+          b => b.file > currentFile || (b.file === currentFile && b.line > currentLine)
+        );
+      }
+
+      // If still not found, wrap to first
+      if (idx === -1) idx = 0;
+
+      await jumpToBookmark(sorted[idx]);
+    }
+  );
+
+  const gotoPrevious = vscode.commands.registerCommand(
+    "secureBookmarks.previous",
+    async () => {
+      const bookmarks = await loadBookmarks();
+      if (bookmarks.length === 0) {
+        vscode.window.showInformationMessage("No bookmarks found.");
+        return;
+      }
+
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) return;
+
+      const currentFile = editor.document.uri.fsPath;
+      const currentLine = editor.selection.active.line;
+
+      const sorted = sortBookmarks(bookmarks);
+
+      // Find current index
+      let idx = sorted.findIndex(
+        b => b.file === currentFile && b.line === currentLine
+      );
+
+      // If not exactly on a bookmark, find the previous one
+      if (idx === -1) {
+        idx = sorted
+          .map((b, i) => ({ b, i }))
+          .filter(x => x.b.file < currentFile || (x.b.file === currentFile && x.b.line < currentLine))
+          .map(x => x.i)
+          .pop();
+      }
+
+      // If still not found, wrap to last
+      if (idx === undefined || idx === -1) idx = sorted.length - 1;
+
+      await jumpToBookmark(sorted[idx]);
     }
   );
 
@@ -87,8 +155,27 @@ function activate(context) {
     addBookmark,
     gotoBookmark,
     deleteBookmark,
-    deleteAllBookmarks
+    deleteAllBookmarks,
+    gotoNext,
+    gotoPrevious
   );
+}
+
+async function jumpToBookmark(b) {
+  const doc = await vscode.workspace.openTextDocument(b.file);
+  const editor = await vscode.window.showTextDocument(doc);
+
+  const pos = new vscode.Position(b.line, b.character);
+  editor.selection = new vscode.Selection(pos, pos);
+  editor.revealRange(new vscode.Range(pos, pos));
+}
+
+function sortBookmarks(bookmarks) {
+  return bookmarks.slice().sort((a, b) => {
+    if (a.file < b.file) return -1;
+    if (a.file > b.file) return 1;
+    return a.line - b.line;
+  });
 }
 
 async function loadBookmarks() {
@@ -113,7 +200,6 @@ async function saveBookmarks(bookmarks) {
   );
 
   try {
-    // Ensure .vscode folder exists
     await vscode.workspace.fs.createDirectory(folderUri);
 
     const encoded = Buffer.from(JSON.stringify(bookmarks, null, 2), "utf8");
